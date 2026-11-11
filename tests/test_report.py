@@ -1,0 +1,122 @@
+import json
+from dataclasses import FrozenInstanceError
+
+import pytest
+
+import wordtally
+from wordtally import ENGLISH_STOPWORDS, Report, analyze
+
+SAMPLE = "The cat sat on the mat. The cat sat on the hat. A dog barked!"
+
+
+def test_counts():
+    r = analyze(SAMPLE)
+    assert r.words == 15
+    assert r.sentences == 3
+    assert r.unique_words == 9
+    assert r.characters == len(SAMPLE)
+    assert r.avg_words_per_sentence == pytest.approx(5.0)
+
+
+def test_empty_text():
+    r = analyze("")
+    assert r.words == 0 and r.sentences == 0 and r.syllables == 0
+    assert r.flesch_reading_ease == 0.0
+    assert r.flesch_kincaid_grade == 0.0
+    assert r.gunning_fog == 0.0
+    assert r.top_words == () and r.repeated_phrases == ()
+    assert r.avg_syllables_per_word == 0.0
+
+
+def test_whitespace_only():
+    r = analyze(" \n\t ")
+    assert r.words == 0 and r.sentences == 0
+
+
+def test_punctuation_only_has_no_words():
+    r = analyze("?!?! ...")
+    assert r.words == 0
+    assert r.flesch_reading_ease == 0.0
+
+
+def test_no_sentence_terminators():
+    r = analyze("just some words without an ending")
+    assert r.sentences == 1
+    assert r.words == 6
+
+
+def test_unicode_text():
+    r = analyze("Café crème. Naïve façade!")
+    assert r.words == 4
+    assert r.sentences == 2
+
+
+def test_top_words_and_stopwords():
+    r = analyze(SAMPLE, stopwords=ENGLISH_STOPWORDS, top=2)
+    assert r.top_words == (("cat", 2), ("sat", 2))
+    r_all = analyze(SAMPLE, top=1)
+    assert r_all.top_words == (("the", 4),)
+
+
+def test_repeated_phrases_in_report():
+    r = analyze("one two three. one two three. four.")
+    assert [(p.text, p.count) for p in r.repeated_phrases] == [("one two three", 2)]
+
+
+def test_readability_matches_formula():
+    r = analyze(SAMPLE)
+    w, s, y = r.words, r.sentences, r.syllables
+    assert r.flesch_reading_ease == pytest.approx(
+        206.835 - 1.015 * (w / s) - 84.6 * (y / w)
+    )
+    assert r.flesch_kincaid_grade == pytest.approx(0.39 * (w / s) + 11.8 * (y / w) - 15.59)
+    assert r.gunning_fog == pytest.approx(0.4 * (w / s + 100 * r.complex_words / w))
+
+
+def test_report_is_frozen():
+    with pytest.raises(FrozenInstanceError):
+        analyze("hi").words = 5  # type: ignore[misc]
+
+
+def test_to_dict_and_json_roundtrip():
+    r = analyze(SAMPLE, top=3)
+    d = json.loads(r.to_json())
+    assert d == r.to_dict()
+    assert d["words"] == 15
+    assert d["top_words"][0] == {"word": "the", "count": 4}
+
+
+def test_json_keeps_unicode():
+    r = analyze("très très très")
+    assert "très" in r.to_json()
+
+
+def test_text_output_sections():
+    out = analyze(SAMPLE).to_text()
+    assert "Flesch reading ease:" in out
+    assert "Top words:" in out
+    assert out.endswith("\n")
+
+
+def test_text_output_empty_has_no_sections():
+    out = analyze("").to_text()
+    assert "Top words" not in out and "Repeated phrases" not in out
+
+
+def test_markdown_output():
+    out = analyze(SAMPLE).to_markdown()
+    assert out.startswith("# Text report")
+    assert "| Words | 15 |" in out
+    assert "## Top words" in out
+    assert "| the | 4 |" in out
+
+
+def test_markdown_escapes_pipes():
+    r = Report(**{**analyze("x").__dict__, "top_words": (("a|b", 1),)})
+    assert "a\\|b" in r.to_markdown()
+
+
+def test_public_api_exports():
+    for name in wordtally.__all__:
+        assert hasattr(wordtally, name)
+    assert wordtally.__version__ == "0.1.0"

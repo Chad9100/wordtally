@@ -12,7 +12,7 @@ from .readability import (
     smog_grade,
 )
 from .report import Report, analyze
-from .sentences import split_sentences
+from .sentences import SentenceStats, sentence_stats, split_sentences
 from .syllables import count_syllables
 from .tokenize import ENGLISH_STOPWORDS, tokenize, word_frequency
 
@@ -22,6 +22,7 @@ __all__ = [
     "ENGLISH_STOPWORDS",
     "Phrase",
     "Report",
+    "SentenceStats",
     "analyze",
     "automated_readability_index",
     "coleman_liau_index",
@@ -33,6 +34,7 @@ __all__ = [
     "letter_count",
     "mtld",
     "repeated_ngrams",
+    "sentence_stats",
     "smog_grade",
     "split_sentences",
     "tokenize",

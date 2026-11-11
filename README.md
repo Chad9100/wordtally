@@ -197,7 +197,56 @@ Output:
 
 `wordtally FILE|-` reads a UTF-8 file (or standard input with `-`). Options:
 `--format text|json|markdown`, `--stopwords`, `--top N`, `--min-n`, `--max-n`,
-`--min-count`.
+`--min-count`, `--sentence-stats`, `--long-sentence N`.
+
+## Sentence statistics
+
+`sentence_stats(text, long_threshold=30, bin_width=5)` returns a frozen
+`SentenceStats` (or `None` if the text has no sentences with words): the
+shortest and longest sentence, mean length, a length histogram in words, and
+the sentences longer than `long_threshold` words. On the CLI it is added with
+`--sentence-stats` (and `--long-sentence N` to set the threshold), in text,
+markdown and JSON (`sentence_stats` key) output.
+
+```python
+from wordtally import sentence_stats
+
+s = sentence_stats(open("sample.txt", encoding="utf-8").read(), long_threshold=10)
+print(s.count, s.mean_words)
+print(s.shortest, s.shortest_words)
+print(s.longest_words)
+print(s.histogram)
+print(s.long_sentences)
+```
+
+Output:
+
+```text
+5 8.4
+Why do we read? 4
+14
+{'1-5': 2, '6-10': 2, '11-15': 1}
+('The quick brown fox is very quick, and the lazy dog is very lazy.',)
+```
+
+```console
+$ wordtally sample.txt --sentence-stats --long-sentence 10
+```
+
+The text report is followed by:
+
+```text
+Sentence statistics:
+Sentences:               5
+Mean length (words):     8.4
+Shortest sentence:       Why do we read? (4 words)
+Longest sentence:        The quick brown fox is very quick, and the lazy dog is very lazy. (14 words)
+Over 10 words:           1
+Length histogram (words):
+    1-5  ## 2
+   6-10  ## 2
+  11-15  # 1
+```
 
 ```console
 $ wordtally sample.txt --stopwords --top 5

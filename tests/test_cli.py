@@ -106,6 +106,40 @@ def test_version(capsys):
     assert "wordtally 0.1.0" in capsys.readouterr().out
 
 
+def test_sentence_stats_text(textfile, capsysbinary):
+    assert main([textfile, "--sentence-stats", "--long-sentence", "3"]) == 0
+    out = capsysbinary.readouterr().out.decode()
+    assert "Sentence statistics:" in out and "Over 3 words:            1" in out
+
+
+def test_sentence_stats_json(textfile, capsysbinary):
+    assert main([textfile, "-f", "json", "--sentence-stats"]) == 0
+    stats = json.loads(capsysbinary.readouterr().out)["sentence_stats"]
+    assert stats["count"] == 3 and stats["longest"] == "The cat sat again."
+
+
+def test_sentence_stats_json_empty(tmp_path, capsysbinary):
+    p = tmp_path / "e.txt"
+    p.write_text("")
+    assert main([str(p), "-f", "json", "--sentence-stats"]) == 0
+    assert json.loads(capsysbinary.readouterr().out)["sentence_stats"] is None
+
+
+def test_sentence_stats_markdown(textfile, capsysbinary):
+    assert main([textfile, "-f", "markdown", "--sentence-stats"]) == 0
+    assert "## Sentence statistics" in capsysbinary.readouterr().out.decode()
+
+
+def test_no_stats_by_default(textfile, capsysbinary):
+    assert main([textfile, "-f", "json"]) == 0
+    assert "sentence_stats" not in json.loads(capsysbinary.readouterr().out)
+
+
+def test_bad_long_sentence(textfile, capsys):
+    assert main([textfile, "--long-sentence", "0"]) == 2
+    assert "long-sentence" in capsys.readouterr().err
+
+
 def test_unicode_output(tmp_path, capsysbinary):
     p = tmp_path / "u.txt"
     p.write_text("très très bien", encoding="utf-8")

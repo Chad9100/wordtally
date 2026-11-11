@@ -1,4 +1,6 @@
-from wordtally.sentences import split_sentences
+import pytest
+
+from wordtally.sentences import sentence_stats, split_sentences
 
 
 def test_simple_split():
@@ -58,3 +60,46 @@ def test_unicode_ellipsis_and_text():
         "Là-bas.",
         "Ça va?",
     ]
+
+
+def test_stats_basic():
+    s = sentence_stats("One two three. Four. Five six seven eight nine ten eleven.")
+    assert s is not None
+    assert s.count == 3
+    assert (s.shortest, s.shortest_words) == ("Four.", 1)
+    assert s.longest_words == 7 and s.longest.startswith("Five")
+    assert s.mean_words == 3.67
+    assert s.histogram == {"1-5": 2, "6-10": 1}
+    assert s.long_sentences == ()
+
+
+def test_stats_long_threshold():
+    s = sentence_stats("One two three four. Five six.", long_threshold=3)
+    assert s is not None
+    assert s.long_sentences == ("One two three four.",)
+
+
+def test_stats_empty_and_wordless():
+    assert sentence_stats("") is None
+    assert sentence_stats("... !!! 123.") is None
+
+
+def test_stats_ties_pick_first():
+    s = sentence_stats("Aa bb. Cc dd.")
+    assert s is not None
+    assert s.shortest == "Aa bb." and s.longest == "Aa bb."
+
+
+def test_stats_bad_arguments():
+    with pytest.raises(ValueError):
+        sentence_stats("x.", long_threshold=0)
+    with pytest.raises(ValueError):
+        sentence_stats("x.", bin_width=0)
+
+
+def test_stats_to_dict_and_text():
+    s = sentence_stats("Hi there. Yes.", bin_width=2)
+    assert s is not None
+    d = s.to_dict()
+    assert d["histogram"] == {"1-2": 2} and d["long_sentences"] == []
+    assert "Length histogram" in s.to_text() and "##" in s.to_text()

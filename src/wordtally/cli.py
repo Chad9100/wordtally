@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from collections.abc import Sequence
 
 from . import __version__
 from .report import analyze
+from .sentences import sentence_stats
 from .tokenize import ENGLISH_STOPWORDS
 
 
@@ -26,6 +28,14 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--min-n", type=int, default=2, help="shortest repeated phrase (default: 2)")
     p.add_argument("--max-n", type=int, default=4, help="longest repeated phrase (default: 4)")
     p.add_argument("--min-count", type=int, default=2, help="minimum repeats (default: 2)")
+    p.add_argument(
+        "--sentence-stats", action="store_true",
+        help="add shortest/longest sentence, a length histogram and over-long sentences",
+    )
+    p.add_argument(
+        "--long-sentence", type=int, default=30, metavar="N",
+        help="with --sentence-stats, flag sentences over N words (default: 30)",
+    )
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return p
 
@@ -45,6 +55,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.min_n < 1 or args.max_n < args.min_n or args.min_count < 2:
         print("wordtally: need 1 <= min-n <= max-n and min-count >= 2", file=sys.stderr)
         return 2
+    if args.long_sentence < 1:
+        print("wordtally: --long-sentence must be >= 1", file=sys.stderr)
+        return 2
     try:
         text = _read(args.file)
     except OSError as exc:
@@ -61,12 +74,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         max_n=args.max_n,
         min_count=args.min_count,
     )
+    stats = sentence_stats(text, long_threshold=args.long_sentence) if args.sentence_stats else None
     if args.format == "json":
-        out = report.to_json() + "\n"
+        data = report.to_dict()
+        if args.sentence_stats:
+            data["sentence_stats"] = stats.to_dict() if stats else None
+        out = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
     elif args.format == "markdown":
         out = report.to_markdown()
+        if stats:
+            out += "\n## Sentence statistics\n\n```text\n" + stats.to_text() + "```\n"
     else:
         out = report.to_text()
+        if stats:
+            out += "\nSentence statistics:\n" + stats.to_text()
     sys.stdout.buffer.write(out.encode("utf-8"))
     return 0
 

@@ -1,3 +1,254 @@
 # wordtally
 
-Text analysis library with a small CLI. Work in progress.
+A small, dependency-free Python library for text analysis (word frequency,
+sentence splitting, syllable estimates, readability scores, repeated phrases)
+with a command-line tool on top. Python 3.10+, standard library only, fully
+typed (`py.typed`).
+
+All outputs below were captured from real runs against the sample file
+`sample.txt`:
+
+> The quick brown fox jumps over the lazy dog. The quick brown fox is very quick, and the lazy dog is very lazy. Dr. Smith studied the unbelievable relationship between foxes and dogs. Simple words make simple sentences. Why do we read?
+
+## Install
+
+```console
+pip install .
+```
+
+## Tokens, frequency, sentences, syllables
+
+Tokens are runs of letters in any script, with internal apostrophes and
+hyphens kept. Numbers and punctuation are dropped. Pass `stopwords=` (for
+example `ENGLISH_STOPWORDS`) to filter words out.
+
+```python
+from wordtally import tokenize, word_frequency, split_sentences, count_syllables, ENGLISH_STOPWORDS
+
+text = open("sample.txt", encoding="utf-8").read()
+
+print(tokenize("Don't panic: it's well-known, café-style!"))
+print(word_frequency(text, stopwords=ENGLISH_STOPWORDS, top=5))
+print(split_sentences(text))
+print([count_syllables(w) for w in ["cat", "table", "unbelievable"]])
+```
+
+Output:
+
+```text
+["don't", 'panic', "it's", 'well-known', 'café-style']
+[('lazy', 3), ('quick', 3), ('brown', 2), ('dog', 2), ('fox', 2)]
+['The quick brown fox jumps over the lazy dog.', 'The quick brown fox is very quick, and the lazy dog is very lazy.', 'Dr. Smith studied the unbelievable relationship between foxes and dogs.', 'Simple words make simple sentences.', 'Why do we read?']
+[1, 2, 5]
+```
+
+Sentence splitting is rule-based: `.`, `!`, `?` and `…` followed by whitespace
+end a sentence, blank lines separate paragraphs, and common abbreviations
+(`Dr.`, `e.g.`) and single-letter initials do not split. Text with no
+terminator is one sentence. Syllable counts are a heuristic estimate for
+English and will be wrong for some words.
+
+## Readability
+
+With `W` words, `S` sentences, `Y` syllables and `C` complex words (three or
+more estimated syllables):
+
+| Score | Formula |
+| --- | --- |
+| Flesch reading ease | `206.835 - 1.015 * (W / S) - 84.6 * (Y / W)` |
+| Flesch-Kincaid grade | `0.39 * (W / S) + 11.8 * (Y / W) - 15.59` |
+| Gunning fog | `0.4 * ((W / S) + 100 * (C / W))` |
+
+Each returns `0.0` for empty input.
+
+```python
+from wordtally import flesch_reading_ease, flesch_kincaid_grade, gunning_fog
+
+# arguments: words, sentences, syllables (complex words for fog)
+print(round(flesch_reading_ease(10, 1, 15), 2))
+print(round(flesch_kincaid_grade(10, 1, 15), 2))
+print(round(gunning_fog(10, 2, 1), 2))
+```
+
+Output:
+
+```text
+69.79
+6.01
+6.0
+```
+
+## Repeated phrases
+
+`repeated_ngrams` finds word sequences that repeat. A shorter phrase is hidden
+when a longer one containing it repeats the same number of times.
+
+```python
+from wordtally import repeated_ngrams
+
+text = open("sample.txt", encoding="utf-8").read()
+for phrase in repeated_ngrams(text, min_n=2, max_n=5):
+    print(phrase)
+```
+
+Output:
+
+```text
+Phrase(text='the quick brown fox', n=4, count=2)
+Phrase(text='the lazy dog', n=3, count=2)
+Phrase(text='is very', n=2, count=2)
+```
+
+## analyze()
+
+`analyze(text)` returns a frozen `Report` dataclass with counts, readability
+scores, top words and repeated phrases. It also offers `to_dict()`,
+`to_json()`, `to_text()` and `to_markdown()`.
+
+```python
+from wordtally import analyze, ENGLISH_STOPWORDS
+
+text = open("sample.txt", encoding="utf-8").read()
+report = analyze(text, stopwords=ENGLISH_STOPWORDS, top=3)
+print(report.words, report.sentences, report.syllables)
+print(round(report.flesch_reading_ease, 2))
+print(report.top_words)
+print(report.repeated_phrases[:2])
+```
+
+Output:
+
+```text
+42 5 62
+73.42
+(('lazy', 3), ('quick', 3), ('brown', 2))
+(Phrase(text='quick brown fox', n=3, count=2), Phrase(text='lazy dog', n=2, count=2))
+```
+
+## Command line
+
+`wordtally FILE|-` reads a UTF-8 file (or standard input with `-`). Options:
+`--format text|json|markdown`, `--stopwords`, `--top N`, `--min-n`, `--max-n`,
+`--min-count`.
+
+```console
+$ wordtally sample.txt --stopwords --top 5
+```
+
+```text
+Characters:              235
+Words:                   42 (27 unique)
+Sentences:               5
+Syllables:               62
+Complex words:           3
+Words per sentence:      8.40
+Syllables per word:      1.48
+Flesch reading ease:     73.42
+Flesch-Kincaid grade:    5.11
+Gunning fog:             6.22
+
+Top words:
+     3  lazy
+     3  quick
+     2  brown
+     2  dog
+     2  fox
+
+Repeated phrases:
+     2x  quick brown fox
+     2x  lazy dog
+```
+
+JSON:
+
+```console
+$ wordtally sample.txt --format json --top 2 --stopwords
+```
+
+```json
+{
+  "characters": 235,
+  "words": 42,
+  "unique_words": 27,
+  "sentences": 5,
+  "syllables": 62,
+  "complex_words": 3,
+  "avg_words_per_sentence": 8.4,
+  "avg_syllables_per_word": 1.48,
+  "flesch_reading_ease": 73.42,
+  "flesch_kincaid_grade": 5.11,
+  "gunning_fog": 6.22,
+  "top_words": [
+    {
+      "word": "lazy",
+      "count": 3
+    },
+    {
+      "word": "quick",
+      "count": 3
+    }
+  ],
+  "repeated_phrases": [
+    {
+      "phrase": "quick brown fox",
+      "words": 3,
+      "count": 2
+    },
+    {
+      "phrase": "lazy dog",
+      "words": 2,
+      "count": 2
+    }
+  ]
+}
+```
+
+Markdown:
+
+```console
+$ wordtally sample.txt -f markdown --top 3 --stopwords
+```
+
+```markdown
+# Text report
+
+| Metric | Value |
+| --- | ---: |
+| Characters | 235 |
+| Words | 42 |
+| Unique words | 27 |
+| Sentences | 5 |
+| Syllables | 62 |
+| Complex words | 3 |
+| Words per sentence | 8.40 |
+| Syllables per word | 1.48 |
+| Flesch reading ease | 73.42 |
+| Flesch-Kincaid grade | 5.11 |
+| Gunning fog | 6.22 |
+
+## Top words
+
+| Word | Count |
+| --- | ---: |
+| lazy | 3 |
+| quick | 3 |
+| brown | 2 |
+
+## Repeated phrases
+
+| Phrase | Count |
+| --- | ---: |
+| quick brown fox | 2 |
+| lazy dog | 2 |
+```
+
+## Development
+
+```console
+pip install -e ".[test]"
+pytest
+```
+
+## License
+
+MIT, see [LICENSE](LICENSE).

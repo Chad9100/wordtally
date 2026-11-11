@@ -51,6 +51,38 @@ def test_stopwords_flag(textfile, capsysbinary):
     assert "the" not in words and "cat" in words
 
 
+def _top_words(capsysbinary):
+    return [w["word"] for w in json.loads(capsysbinary.readouterr().out)["top_words"]]
+
+
+def test_stopwords_file(textfile, tmp_path, capsysbinary):
+    sw = tmp_path / "sw.txt"
+    sw.write_text("# mine\nCat\n\n  sat  # trailing\n", encoding="utf-8")
+    assert main([textfile, "-f", "json", "--stopwords-file", str(sw)]) == 0
+    words = _top_words(capsysbinary)
+    assert "cat" not in words and "sat" not in words and "the" in words
+
+
+def test_stopwords_file_combined(textfile, tmp_path, capsysbinary):
+    sw = tmp_path / "sw.txt"
+    sw.write_bytes(b"\xef\xbb\xbfcat\n")
+    assert main([textfile, "-f", "json", "--stopwords", "--stopwords-file", str(sw)]) == 0
+    words = _top_words(capsysbinary)
+    assert "the" not in words and "cat" not in words and "sat" in words
+
+
+def test_stopwords_file_missing(textfile, tmp_path, capsys):
+    assert main([textfile, "--stopwords-file", str(tmp_path / "nope.txt")]) == 1
+    assert "cannot read" in capsys.readouterr().err
+
+
+def test_stopwords_file_invalid_utf8(textfile, tmp_path, capsys):
+    sw = tmp_path / "bad.txt"
+    sw.write_bytes(b"\xff\xfe\x00")
+    assert main([textfile, "--stopwords-file", str(sw)]) == 1
+    assert "UTF-8" in capsys.readouterr().err
+
+
 def test_top_option(textfile, capsysbinary):
     assert main([textfile, "-f", "json", "--top", "1"]) == 0
     assert len(json.loads(capsysbinary.readouterr().out)["top_words"]) == 1

@@ -10,7 +10,7 @@ from collections.abc import Sequence
 from . import __version__
 from .report import analyze
 from .sentences import sentence_stats
-from .tokenize import ENGLISH_STOPWORDS
+from .tokenize import ENGLISH_STOPWORDS, parse_stopwords
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -24,6 +24,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="output format (default: text)",
     )
     p.add_argument("--stopwords", action="store_true", help="ignore common English stopwords")
+    p.add_argument(
+        "--stopwords-file", metavar="FILE",
+        help="also ignore the words in FILE (one per line, # comments); "
+        "usable with or without --stopwords",
+    )
     p.add_argument("--top", type=int, default=10, help="frequent words to list (default: 10)")
     p.add_argument("--min-n", type=int, default=2, help="shortest repeated phrase (default: 2)")
     p.add_argument("--max-n", type=int, default=4, help="longest repeated phrase (default: 4)")
@@ -66,9 +71,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     except UnicodeDecodeError:
         print(f"wordtally: {args.file} is not valid UTF-8", file=sys.stderr)
         return 1
+    stop: frozenset[str] | None = ENGLISH_STOPWORDS if args.stopwords else None
+    if args.stopwords_file is not None:
+        try:
+            with open(args.stopwords_file, "rb") as fh:
+                custom = parse_stopwords(fh.read().decode("utf-8-sig"))
+        except OSError as exc:
+            print(
+                f"wordtally: cannot read {args.stopwords_file}: {exc.strerror or exc}",
+                file=sys.stderr,
+            )
+            return 1
+        except UnicodeDecodeError:
+            print(f"wordtally: {args.stopwords_file} is not valid UTF-8", file=sys.stderr)
+            return 1
+        stop = custom if stop is None else stop | custom
     report = analyze(
         text,
-        stopwords=ENGLISH_STOPWORDS if args.stopwords else None,
+        stopwords=stop,
         top=args.top,
         min_n=args.min_n,
         max_n=args.max_n,

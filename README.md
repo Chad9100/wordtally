@@ -196,8 +196,42 @@ Output:
 ## Command line
 
 `wordtally FILE|-` reads a UTF-8 file (or standard input with `-`). Options:
-`--format text|json|markdown`, `--stopwords`, `--top N`, `--min-n`, `--max-n`,
-`--min-count`, `--sentence-stats`, `--long-sentence N`.
+`--format text|json|markdown`, `--stopwords`, `--stopwords-file FILE`,
+`--top N`, `--min-n`, `--max-n`, `--min-count`, `--sentence-stats`,
+`--long-sentence N`.
+
+## Custom stopwords
+
+`--stopwords-file FILE` ignores the words listed in a UTF-8 file, one per
+line (blank lines and `#` comments are skipped, matching is case-insensitive).
+It can be combined with `--stopwords`, in which case both lists apply. In code,
+`parse_stopwords(text)` returns the frozenset to pass as `stopwords=`.
+
+```console
+$ wordtally sample.txt --stopwords --stopwords-file mystop.txt --top 5
+```
+
+where `mystop.txt` contains:
+
+```text
+# words to skip
+quick
+lazy  # adjective
+```
+
+The top words and phrases sections then read:
+
+```text
+Top words:
+     2  brown
+     2  dog
+     2  fox
+     2  simple
+     1  dogs
+
+Repeated phrases:
+     2x  brown fox
+```
 
 ## Sentence statistics
 

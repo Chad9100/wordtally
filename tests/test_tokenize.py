@@ -1,4 +1,13 @@
-from wordtally.tokenize import ENGLISH_STOPWORDS, tokenize, word_frequency
+from wordtally.tokenize import ENGLISH_STOPWORDS, parse_stopwords, tokenize, word_frequency
+
+
+def test_parse_stopwords():
+    got = parse_stopwords("# header\nFoo\n\n bar  # note\r\nÉTÉ\n#\n")
+    assert got == frozenset({"foo", "bar", "été"})
+
+
+def test_parse_stopwords_empty():
+    assert parse_stopwords("") == frozenset()
 
 
 def test_basic_tokens():

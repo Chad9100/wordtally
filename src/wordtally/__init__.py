@@ -14,7 +14,7 @@ from .readability import (
 from .report import Report, analyze
 from .sentences import SentenceStats, sentence_stats, split_sentences
 from .syllables import count_syllables
-from .tokenize import ENGLISH_STOPWORDS, tokenize, word_frequency
+from .tokenize import ENGLISH_STOPWORDS, parse_stopwords, tokenize, word_frequency
 
 __version__ = "0.1.0"
 
@@ -33,6 +33,7 @@ __all__ = [
     "hapax_legomena",
     "letter_count",
     "mtld",
+    "parse_stopwords",
     "repeated_ngrams",
     "sentence_stats",
     "smog_grade",

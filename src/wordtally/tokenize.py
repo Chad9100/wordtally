@@ -26,6 +26,23 @@ ENGLISH_STOPWORDS: frozenset[str] = frozenset(
 )
 
 
+def parse_stopwords(text: str) -> frozenset[str]:
+    """Parse a stopword list: one word per line.
+
+    Blank lines are skipped, ``#`` starts a comment (a whole line or the end
+    of a line), and surrounding whitespace is stripped. Words are casefolded.
+
+    Args:
+        text: The contents of a stopword file.
+    """
+    words = set()
+    for line in text.splitlines():
+        word = line.split("#", 1)[0].strip()
+        if word:
+            words.add(word.casefold())
+    return frozenset(words)
+
+
 def tokenize(
     text: str,
     *,

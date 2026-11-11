@@ -1,6 +1,10 @@
 import pytest
 
 from wordtally.readability import (
+    automated_readability_index,
+    coleman_liau_index,
+    letter_count,
+    smog_grade,
     complex_word_count,
     flesch_kincaid_grade,
     flesch_reading_ease,
@@ -29,6 +33,36 @@ def test_zero_inputs_give_zero(fn):
     assert fn(0, 0, 0) == 0.0
     assert fn(5, 0, 5) == 0.0
     assert fn(0, 3, 0) == 0.0
+
+
+def test_smog_hand_computed():
+    # 1.043 * sqrt(30 * 30 / 30) + 3.1291 with 30 sentences, 30 complex words
+    assert smog_grade(30, 30) == pytest.approx(1.0430 * 30**0.5 + 3.1291)
+    # no complex words: just the constant
+    assert smog_grade(5, 0) == pytest.approx(3.1291)
+
+
+def test_coleman_liau_hand_computed():
+    # 100 words, 5 sentences, 450 letters: 0.0588*450 - 0.296*5 - 15.8
+    assert coleman_liau_index(100, 5, 450) == pytest.approx(9.18)
+
+
+def test_ari_hand_computed():
+    # 4.71*4.5 + 0.5*20 - 21.43
+    assert automated_readability_index(100, 5, 450) == pytest.approx(9.765)
+
+
+def test_new_scores_zero_inputs():
+    assert smog_grade(0, 4) == 0.0
+    assert coleman_liau_index(0, 1, 5) == 0.0
+    assert coleman_liau_index(5, 0, 5) == 0.0
+    assert automated_readability_index(0, 1, 5) == 0.0
+    assert automated_readability_index(5, 0, 5) == 0.0
+
+
+def test_letter_count_ignores_apostrophes_and_hyphens():
+    assert letter_count(["don't", "well-known", "café"]) == 4 + 9 + 4
+    assert letter_count([]) == 0
 
 
 def test_simpler_text_scores_easier():

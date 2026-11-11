@@ -59,7 +59,41 @@ more estimated syllables):
 | Flesch-Kincaid grade | `0.39 * (W / S) + 11.8 * (Y / W) - 15.59` |
 | Gunning fog | `0.4 * ((W / S) + 100 * (C / W))` |
 
-Each returns `0.0` for empty input.
+Three letter- and complexity-based scores are available as functions too
+(`L` is the number of letters, `letter_count(words)` computes it):
+
+| Score | Formula |
+| --- | --- |
+| SMOG grade | `1.0430 * sqrt(C * (30 / S)) + 3.1291` |
+| Coleman-Liau index | `0.0588 * (100 * L / W) - 0.296 * (100 * S / W) - 15.8` |
+| Automated readability index | `4.71 * (L / W) + 0.5 * (W / S) - 21.43` |
+
+SMOG is formally defined for samples of 30+ sentences, so treat it as rough on
+short texts. Each score returns `0.0` for empty input.
+
+```python
+from wordtally import (tokenize, split_sentences, smog_grade,
+                       coleman_liau_index, automated_readability_index, letter_count)
+from wordtally.readability import complex_word_count
+
+text = open("sample.txt", encoding="utf-8").read()
+w = tokenize(text)
+s = len(split_sentences(text))
+letters = letter_count(w)
+print(len(w), s, letters, complex_word_count(w))
+print(round(smog_grade(s, complex_word_count(w)), 2))
+print(round(coleman_liau_index(len(w), s, letters), 2))
+print(round(automated_readability_index(len(w), s, letters), 2))
+```
+
+Output:
+
+```text
+42 5 186 3
+7.55
+6.72
+3.63
+```
 
 ```python
 from wordtally import flesch_reading_ease, flesch_kincaid_grade, gunning_fog

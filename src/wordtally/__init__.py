@@ -2,7 +2,15 @@
 
 from .diversity import hapax_legomena, mtld, type_token_ratio
 from .ngrams import Phrase, repeated_ngrams
-from .readability import flesch_kincaid_grade, flesch_reading_ease, gunning_fog
+from .readability import (
+    automated_readability_index,
+    coleman_liau_index,
+    flesch_kincaid_grade,
+    flesch_reading_ease,
+    gunning_fog,
+    letter_count,
+    smog_grade,
+)
 from .report import Report, analyze
 from .sentences import split_sentences
 from .syllables import count_syllables
@@ -15,13 +23,17 @@ __all__ = [
     "Phrase",
     "Report",
     "analyze",
+    "automated_readability_index",
+    "coleman_liau_index",
     "count_syllables",
     "flesch_kincaid_grade",
     "flesch_reading_ease",
     "gunning_fog",
     "hapax_legomena",
+    "letter_count",
     "mtld",
     "repeated_ngrams",
+    "smog_grade",
     "split_sentences",
     "tokenize",
     "type_token_ratio",

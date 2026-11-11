@@ -99,6 +99,38 @@ Phrase(text='the lazy dog', n=3, count=2)
 Phrase(text='is very', n=2, count=2)
 ```
 
+## Lexical diversity
+
+- `type_token_ratio(text)`: unique words / total words. It shrinks as texts
+  grow, so compare only texts of similar length.
+- `mtld(text, threshold=0.72)`: Measure of Textual Lexical Diversity. A running
+  type-token ratio is kept; each time it falls to the threshold a factor is
+  counted and it resets (a trailing partial factor counts fractionally). MTLD
+  is tokens / factors, averaged over a forward and a backward pass. Higher is
+  more diverse and it is much less sensitive to length.
+- `hapax_legomena(text)`: words that occur exactly once.
+
+All accept `stopwords=`. Empty input gives `0.0` (or `()`).
+
+```python
+from wordtally import type_token_ratio, mtld, hapax_legomena, ENGLISH_STOPWORDS
+
+text = open("sample.txt", encoding="utf-8").read()
+print(round(type_token_ratio(text), 3))
+print(round(mtld(text), 2))
+print(hapax_legomena(text, stopwords=ENGLISH_STOPWORDS))
+print(mtld("a a a a"))
+```
+
+Output:
+
+```text
+0.643
+26.16
+('jumps', 'dr', 'smith', 'studied', 'unbelievable', 'relationship', 'foxes', 'dogs', 'words', 'make', 'sentences', 'read')
+2.0
+```
+
 ## analyze()
 
 `analyze(text)` returns a frozen `Report` dataclass with counts, readability

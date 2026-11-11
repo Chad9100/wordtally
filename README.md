@@ -59,7 +59,9 @@ more estimated syllables):
 | Flesch-Kincaid grade | `0.39 * (W / S) + 11.8 * (Y / W) - 15.59` |
 | Gunning fog | `0.4 * ((W / S) + 100 * (C / W))` |
 
-Three letter- and complexity-based scores are available as functions too
+Three letter- and complexity-based scores are also included in `analyze()`
+and the CLI output (`smog_grade`, `coleman_liau_index`,
+`automated_readability_index`), and are available as functions
 (`L` is the number of letters, `letter_count(words)` computes it):
 
 | Score | Formula |
@@ -212,6 +214,9 @@ Syllables per word:      1.48
 Flesch reading ease:     73.42
 Flesch-Kincaid grade:    5.11
 Gunning fog:             6.22
+SMOG grade:              7.55
+Coleman-Liau index:      6.72
+Automated readability:   3.63
 
 Top words:
      3  lazy
@@ -244,6 +249,9 @@ $ wordtally sample.txt --format json --top 2 --stopwords
   "flesch_reading_ease": 73.42,
   "flesch_kincaid_grade": 5.11,
   "gunning_fog": 6.22,
+  "smog_grade": 7.55,
+  "coleman_liau_index": 6.72,
+  "automated_readability_index": 3.63,
   "top_words": [
     {
       "word": "lazy",
@@ -291,6 +299,9 @@ $ wordtally sample.txt -f markdown --top 3 --stopwords
 | Flesch reading ease | 73.42 |
 | Flesch-Kincaid grade | 5.11 |
 | Gunning fog | 6.22 |
+| SMOG grade | 7.55 |
+| Coleman-Liau index | 6.72 |
+| Automated readability index | 3.63 |
 
 ## Top words
 

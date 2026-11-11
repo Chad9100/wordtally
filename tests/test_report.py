@@ -24,6 +24,9 @@ def test_empty_text():
     assert r.flesch_reading_ease == 0.0
     assert r.flesch_kincaid_grade == 0.0
     assert r.gunning_fog == 0.0
+    assert r.smog_grade == 0.0
+    assert r.coleman_liau_index == 0.0
+    assert r.automated_readability_index == 0.0
     assert r.top_words == () and r.repeated_phrases == ()
     assert r.avg_syllables_per_word == 0.0
 
@@ -71,6 +74,38 @@ def test_readability_matches_formula():
     )
     assert r.flesch_kincaid_grade == pytest.approx(0.39 * (w / s) + 11.8 * (y / w) - 15.59)
     assert r.gunning_fog == pytest.approx(0.4 * (w / s + 100 * r.complex_words / w))
+
+
+def test_extra_scores_match_functions():
+    from wordtally import tokenize
+    from wordtally.readability import (
+        automated_readability_index,
+        coleman_liau_index,
+        complex_word_count,
+        letter_count,
+        smog_grade,
+    )
+
+    r = analyze(SAMPLE)
+    toks = tokenize(SAMPLE)
+    letters = letter_count(toks)
+    assert r.smog_grade == pytest.approx(smog_grade(3, complex_word_count(toks)))
+    assert r.coleman_liau_index == pytest.approx(coleman_liau_index(15, 3, letters))
+    assert r.automated_readability_index == pytest.approx(
+        automated_readability_index(15, 3, letters)
+    )
+
+
+def test_extra_scores_in_every_output_format():
+    r = analyze(SAMPLE)
+    d = json.loads(r.to_json())
+    for key in ("smog_grade", "coleman_liau_index", "automated_readability_index"):
+        assert d[key] == round(getattr(r, key), 2)
+    assert "SMOG grade:" in r.to_text()
+    assert "Coleman-Liau index:" in r.to_text()
+    assert "Automated readability:" in r.to_text()
+    md = r.to_markdown()
+    assert "| SMOG grade |" in md and "| Automated readability index |" in md
 
 
 def test_report_is_frozen():

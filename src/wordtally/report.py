@@ -17,7 +17,9 @@ from .tokenize import tokenize, word_frequency
 class Report:
     """Result of :func:`analyze`.
 
-    Counts and readability use every word; ``top_words`` and
+    Counts and readability use every word (including SMOG, Coleman-Liau and
+    the automated readability index; SMOG is rough on short texts);
+    ``top_words`` and
     ``repeated_phrases`` honour the ``stopwords`` passed to ``analyze``.
     """
 
@@ -32,6 +34,9 @@ class Report:
     flesch_reading_ease: float
     flesch_kincaid_grade: float
     gunning_fog: float
+    smog_grade: float
+    coleman_liau_index: float
+    automated_readability_index: float
     top_words: tuple[tuple[str, int], ...]
     repeated_phrases: tuple[Phrase, ...]
 
@@ -49,6 +54,9 @@ class Report:
             "flesch_reading_ease": round(self.flesch_reading_ease, 2),
             "flesch_kincaid_grade": round(self.flesch_kincaid_grade, 2),
             "gunning_fog": round(self.gunning_fog, 2),
+            "smog_grade": round(self.smog_grade, 2),
+            "coleman_liau_index": round(self.coleman_liau_index, 2),
+            "automated_readability_index": round(self.automated_readability_index, 2),
             "top_words": [{"word": w, "count": c} for w, c in self.top_words],
             "repeated_phrases": [
                 {"phrase": p.text, "words": p.n, "count": p.count}
@@ -74,6 +82,9 @@ class Report:
             f"Flesch reading ease:     {d['flesch_reading_ease']:.2f}",
             f"Flesch-Kincaid grade:    {d['flesch_kincaid_grade']:.2f}",
             f"Gunning fog:             {d['gunning_fog']:.2f}",
+            f"SMOG grade:              {d['smog_grade']:.2f}",
+            f"Coleman-Liau index:      {d['coleman_liau_index']:.2f}",
+            f"Automated readability:   {d['automated_readability_index']:.2f}",
         ]
         if self.top_words:
             lines += ["", "Top words:"]
@@ -98,6 +109,9 @@ class Report:
             ("Flesch reading ease", f"{d['flesch_reading_ease']:.2f}"),
             ("Flesch-Kincaid grade", f"{d['flesch_kincaid_grade']:.2f}"),
             ("Gunning fog", f"{d['gunning_fog']:.2f}"),
+            ("SMOG grade", f"{d['smog_grade']:.2f}"),
+            ("Coleman-Liau index", f"{d['coleman_liau_index']:.2f}"),
+            ("Automated readability index", f"{d['automated_readability_index']:.2f}"),
         ]
         out = ["# Text report", "", "| Metric | Value |", "| --- | ---: |"]
         out += [f"| {k} | {v} |" for k, v in rows]
@@ -139,6 +153,7 @@ def analyze(
     sentences = len(split_sentences(text))
     syllables = readability.syllable_total(tokens)
     complex_words = readability.complex_word_count(tokens)
+    letters = readability.letter_count(tokens)
     return Report(
         characters=len(text),
         words=words,
@@ -151,6 +166,11 @@ def analyze(
         flesch_reading_ease=readability.flesch_reading_ease(words, sentences, syllables),
         flesch_kincaid_grade=readability.flesch_kincaid_grade(words, sentences, syllables),
         gunning_fog=readability.gunning_fog(words, sentences, complex_words),
+        smog_grade=readability.smog_grade(sentences, complex_words),
+        coleman_liau_index=readability.coleman_liau_index(words, sentences, letters),
+        automated_readability_index=readability.automated_readability_index(
+            words, sentences, letters
+        ),
         top_words=tuple(word_frequency(text, stopwords=stop, top=top)),
         repeated_phrases=tuple(
             repeated_ngrams(

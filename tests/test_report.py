@@ -151,6 +151,29 @@ def test_markdown_escapes_pipes():
     assert "a\\|b" in r.to_markdown()
 
 
+def test_csv_output():
+    out = analyze(SAMPLE, top=2).to_csv()
+    lines = out.splitlines()
+    assert lines[0] == "section,name,value"
+    assert "metric,words,15" in lines
+    assert "top_word,the,4" in lines
+    assert "phrase,cat sat on the,2" in lines
+    assert "\r" not in out and out.endswith("\n")
+
+
+def test_csv_quotes_and_extra_rows():
+    r = Report(**{**analyze("x").__dict__, "top_words": (('a,"b"', 1),)})
+    out = r.to_csv([("extra", "k", 1.5)])
+    assert 'top_word,"a,""b""",1' in out
+    assert out.endswith("extra,k,1.5\n")
+
+
+def test_csv_empty_has_only_metrics():
+    out = analyze("").to_csv()
+    assert "top_word" not in out and "phrase" not in out
+    assert "metric,words,0" in out
+
+
 def test_public_api_exports():
     for name in wordtally.__all__:
         assert hasattr(wordtally, name)

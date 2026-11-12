@@ -1,3 +1,4 @@
+import csv
 import io
 import json
 import sys
@@ -177,3 +178,31 @@ def test_unicode_output(tmp_path, capsysbinary):
     p.write_text("très très bien", encoding="utf-8")
     assert main([str(p), "-f", "json"]) == 0
     assert "très".encode() in capsysbinary.readouterr().out
+
+
+def test_csv_output(textfile, capsysbinary):
+    assert main([textfile, "-f", "csv", "--top", "2"]) == 0
+    rows = list(csv.reader(io.StringIO(capsysbinary.readouterr().out.decode())))
+    assert rows[0] == ["section", "name", "value"]
+    assert ["metric", "words", "10"] in rows
+    assert sum(1 for r in rows if r[0] == "top_word") == 2
+
+
+def test_csv_sentence_stats(textfile, capsysbinary):
+    assert main([textfile, "-f", "csv", "--sentence-stats"]) == 0
+    rows = list(csv.reader(io.StringIO(capsysbinary.readouterr().out.decode())))
+    assert ["sentence_stats", "count", "3"] in rows
+    assert any(r[0] == "histogram" for r in rows)
+
+
+def test_output_file(textfile, tmp_path, capsysbinary):
+    dest = tmp_path / "out.csv"
+    assert main([textfile, "-f", "csv", "--output", str(dest)]) == 0
+    assert capsysbinary.readouterr().out == b""
+    assert dest.read_bytes().decode("utf-8").startswith("section,name,value\n")
+
+
+def test_output_file_unwritable(textfile, tmp_path, capsys):
+    dest = tmp_path / "no_such_dir" / "out.txt"
+    assert main([textfile, "-o", str(dest)]) == 1
+    assert "cannot write" in capsys.readouterr().err

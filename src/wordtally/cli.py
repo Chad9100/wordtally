@@ -20,8 +20,12 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("file", help="path to a UTF-8 text file, or - to read standard input")
     p.add_argument(
-        "-f", "--format", choices=["text", "json", "markdown"], default="text",
+        "-f", "--format", choices=["text", "json", "markdown", "csv"], default="text",
         help="output format (default: text)",
+    )
+    p.add_argument(
+        "-o", "--output", metavar="FILE",
+        help="write the report to FILE (UTF-8) instead of standard output",
     )
     p.add_argument("--stopwords", action="store_true", help="ignore common English stopwords")
     p.add_argument(
@@ -100,6 +104,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.sentence_stats:
             data["sentence_stats"] = stats.to_dict() if stats else None
         out = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+    elif args.format == "csv":
+        extra: list[tuple[str, str, str | int | float]] = []
+        if stats:
+            extra += [
+                ("sentence_stats", "count", stats.count),
+                ("sentence_stats", "mean_words", stats.mean_words),
+                ("sentence_stats", "shortest_words", stats.shortest_words),
+                ("sentence_stats", "longest_words", stats.longest_words),
+                ("sentence_stats", "long_sentences", len(stats.long_sentences)),
+            ]
+            extra += [("histogram", k, v) for k, v in stats.histogram.items()]
+        out = report.to_csv(extra)
     elif args.format == "markdown":
         out = report.to_markdown()
         if stats:
@@ -108,7 +124,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         out = report.to_text()
         if stats:
             out += "\nSentence statistics:\n" + stats.to_text()
-    sys.stdout.buffer.write(out.encode("utf-8"))
+    payload = out.encode("utf-8")
+    if args.output is not None:
+        try:
+            with open(args.output, "wb") as fh:
+                fh.write(payload)
+        except OSError as exc:
+            print(
+                f"wordtally: cannot write {args.output}: {exc.strerror or exc}",
+                file=sys.stderr,
+            )
+            return 1
+    else:
+        sys.stdout.buffer.write(payload)
     return 0
 
 

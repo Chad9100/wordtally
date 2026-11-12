@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -93,6 +95,29 @@ class Report:
             lines += ["", "Repeated phrases:"]
             lines += [f"  {p.count:>4}x  {p.text}" for p in self.repeated_phrases]
         return "\n".join(lines) + "\n"
+
+    def to_csv(self, extra_rows: Iterable[tuple[str, str, str | int | float]] = ()) -> str:
+        """The report as CSV with the columns ``section,name,value``.
+
+        Sections are ``metric`` (one row per number), ``top_word`` (value is
+        the count) and ``phrase`` (value is the repeat count). Rows from
+        ``extra_rows`` are appended unchanged. Lines end with a newline and
+        fields are quoted only when needed.
+        """
+        d = self.to_dict()
+        buf = io.StringIO()
+        writer = csv.writer(buf, lineterminator="\n")
+        writer.writerow(["section", "name", "value"])
+        for key, value in d.items():
+            if key not in ("top_words", "repeated_phrases"):
+                writer.writerow(["metric", key, value])
+        for w, c in self.top_words:
+            writer.writerow(["top_word", w, c])
+        for p in self.repeated_phrases:
+            writer.writerow(["phrase", p.text, p.count])
+        for row in extra_rows:
+            writer.writerow(row)
+        return buf.getvalue()
 
     def to_markdown(self) -> str:
         """The report as Markdown tables."""

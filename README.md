@@ -196,9 +196,55 @@ Output:
 ## Command line
 
 `wordtally FILE|-` reads a UTF-8 file (or standard input with `-`). Options:
-`--format text|json|markdown`, `--stopwords`, `--stopwords-file FILE`,
-`--top N`, `--min-n`, `--max-n`, `--min-count`, `--sentence-stats`,
-`--long-sentence N`.
+`--format text|json|markdown|csv`, `--output FILE`, `--stopwords`,
+`--stopwords-file FILE`, `--top N`, `--min-n`, `--max-n`, `--min-count`,
+`--sentence-stats`, `--long-sentence N`.
+
+## CSV output and --output
+
+`-f csv` prints one `section,name,value` row per item: `metric` rows for every
+number, `top_word` and `phrase` rows (value is the count) and, with
+`--sentence-stats`, `sentence_stats` and `histogram` rows. In code use
+`Report.to_csv()`. `-o FILE` / `--output FILE` writes the report (UTF-8) to a
+file instead of standard output; an unwritable path exits with status 1. The
+real output of the command below (sample text without a trailing newline,
+hence 234 characters):
+
+```console
+$ wordtally sample.txt -f csv --stopwords --top 3 --sentence-stats --long-sentence 10 -o out.csv
+$ cat out.csv
+```
+
+```text
+section,name,value
+metric,characters,234
+metric,words,42
+metric,unique_words,27
+metric,sentences,5
+metric,syllables,62
+metric,complex_words,3
+metric,avg_words_per_sentence,8.4
+metric,avg_syllables_per_word,1.48
+metric,flesch_reading_ease,73.42
+metric,flesch_kincaid_grade,5.11
+metric,gunning_fog,6.22
+metric,smog_grade,7.55
+metric,coleman_liau_index,6.72
+metric,automated_readability_index,3.63
+top_word,lazy,3
+top_word,quick,3
+top_word,brown,2
+phrase,quick brown fox,2
+phrase,lazy dog,2
+sentence_stats,count,5
+sentence_stats,mean_words,8.4
+sentence_stats,shortest_words,4
+sentence_stats,longest_words,14
+sentence_stats,long_sentences,1
+histogram,1-5,2
+histogram,6-10,2
+histogram,11-15,1
+```
 
 ## Custom stopwords
 

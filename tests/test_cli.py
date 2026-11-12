@@ -202,6 +202,41 @@ def test_output_file(textfile, tmp_path, capsysbinary):
     assert dest.read_bytes().decode("utf-8").startswith("section,name,value\n")
 
 
+def test_diversity_text(textfile, capsysbinary):
+    assert main([textfile, "--diversity"]) == 0
+    out = capsysbinary.readouterr().out.decode()
+    assert "Lexical diversity:" in out
+    assert "Type-token ratio:        0.700" in out
+    assert "Hapax legomena:          4 (40.0% of words)" in out
+
+
+def test_diversity_json(textfile, capsysbinary):
+    assert main([textfile, "-f", "json", "--diversity"]) == 0
+    div = json.loads(capsysbinary.readouterr().out)["diversity"]
+    assert div["type_token_ratio"] == 0.7
+    assert div["hapax_count"] == 4 and div["hapax_share"] == 0.4
+    assert div["mtld"] > 0
+
+
+def test_diversity_csv_and_markdown(textfile, capsysbinary):
+    assert main([textfile, "-f", "csv", "--diversity"]) == 0
+    rows = list(csv.reader(io.StringIO(capsysbinary.readouterr().out.decode())))
+    assert ["diversity", "hapax_count", "4"] in rows
+    assert main([textfile, "-f", "markdown", "--diversity"]) == 0
+    out = capsysbinary.readouterr().out.decode()
+    assert "## Lexical diversity" in out and "| hapax_count | 4 |" in out
+
+
+def test_diversity_empty_and_default_off(tmp_path, textfile, capsysbinary):
+    p = tmp_path / "e.txt"
+    p.write_text("")
+    assert main([str(p), "-f", "json", "--diversity"]) == 0
+    div = json.loads(capsysbinary.readouterr().out)["diversity"]
+    assert div == {"type_token_ratio": 0.0, "mtld": 0.0, "hapax_count": 0, "hapax_share": 0.0}
+    assert main([textfile, "-f", "json"]) == 0
+    assert "diversity" not in json.loads(capsysbinary.readouterr().out)
+
+
 def test_output_file_unwritable(textfile, tmp_path, capsys):
     dest = tmp_path / "no_such_dir" / "out.txt"
     assert main([textfile, "-o", str(dest)]) == 1

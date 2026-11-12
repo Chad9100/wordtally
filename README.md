@@ -167,6 +167,26 @@ Output:
 2.0
 ```
 
+### --diversity on the command line
+
+`--diversity` adds type-token ratio, MTLD and the hapax count and share (all
+words, no stopword filtering) to text, JSON (`diversity` key), CSV
+(`diversity` rows) and Markdown output. In code, `wordtally.cli.diversity_summary(text)`
+returns the same dictionary.
+
+```console
+$ wordtally sample.txt --diversity
+```
+
+The report is followed by:
+
+```text
+Lexical diversity:
+Type-token ratio:        0.643
+MTLD:                    26.155
+Hapax legomena:          17 (40.5% of words)
+```
+
 ## analyze()
 
 `analyze(text)` returns a frozen `Report` dataclass with counts, readability
@@ -198,7 +218,7 @@ Output:
 `wordtally FILE|-` reads a UTF-8 file (or standard input with `-`). Options:
 `--format text|json|markdown|csv`, `--output FILE`, `--stopwords`,
 `--stopwords-file FILE`, `--top N`, `--min-n`, `--max-n`, `--min-count`,
-`--sentence-stats`, `--long-sentence N`.
+`--sentence-stats`, `--long-sentence N`, `--diversity`.
 
 ## CSV output and --output
 

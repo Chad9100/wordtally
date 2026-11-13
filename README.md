@@ -48,6 +48,22 @@ end a sentence, blank lines separate paragraphs, and common abbreviations
 terminator is one sentence. Syllable counts are a heuristic estimate for
 English and will be wrong for some words.
 
+A small dictionary, `wordtally.syllables.SYLLABLE_EXCEPTIONS` (lower-case word
+to count), overrides the heuristic for common irregular words and is checked
+first:
+
+```python
+from wordtally import count_syllables
+
+print([count_syllables(w) for w in ["idea", "area", "business", "every", "quiet"]])
+```
+
+Output:
+
+```text
+[3, 3, 2, 2, 2]
+```
+
 ## Readability
 
 With `W` words, `S` sentences, `Y` syllables and `C` complex words (three or

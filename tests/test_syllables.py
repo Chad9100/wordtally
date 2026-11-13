@@ -27,6 +27,27 @@ def test_known_words(word, expected):
     assert count_syllables(word) == expected
 
 
+@pytest.mark.parametrize(
+    "word,expected",
+    [("idea", 3), ("area", 3), ("business", 2), ("every", 2), ("quiet", 2), ("poem", 2)],
+)
+def test_exceptions_dictionary(word, expected):
+    assert count_syllables(word) == expected
+
+
+def test_exceptions_case_and_accent_insensitive():
+    assert count_syllables("IDEA") == 3
+    assert count_syllables("idéa") == 3
+
+
+def test_exceptions_are_valid():
+    from wordtally.syllables import SYLLABLE_EXCEPTIONS
+
+    for word, n in SYLLABLE_EXCEPTIONS.items():
+        assert word == word.lower() and word.isascii() and word.isalpha()
+        assert n >= 1
+
+
 def test_no_letters_is_zero():
     assert count_syllables("") == 0
     assert count_syllables("123 !?") == 0

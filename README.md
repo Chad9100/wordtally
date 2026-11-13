@@ -187,6 +187,50 @@ MTLD:                    26.155
 Hapax legomena:          17 (40.5% of words)
 ```
 
+## Keyword extraction (RAKE)
+
+`extract_keywords(text, stopwords=ENGLISH_STOPWORDS, max_words=3, top=None)`
+ranks keyword phrases with RAKE. The text is cut into candidate phrases at
+punctuation, digits and stopwords. Each word scores `degree / frequency`
+(degree is the total length of the candidate phrases it appears in), and a
+phrase scores the sum of its words' scores, rounded to 2 places. Candidates
+longer than `max_words` are dropped. Results are `Keyword(text, score, count)`
+sorted by score, then count, then text.
+
+```python
+from wordtally import extract_keywords
+
+text = open("sample.txt", encoding="utf-8").read()
+for kw in extract_keywords(text, top=5):
+    print(kw)
+```
+
+Output:
+
+```text
+Keyword(text='quick brown fox', score=9.67, count=1)
+Keyword(text='smith studied', score=4.0, count=1)
+Keyword(text='unbelievable relationship', score=4.0, count=1)
+Keyword(text='lazy dog', score=3.67, count=2)
+Keyword(text='quick', score=2.67, count=1)
+```
+
+On the command line, `--keywords N` adds the N best keywords to text, JSON
+(`keywords` key), CSV (`keyword` rows) and Markdown output:
+
+```console
+$ wordtally sample.txt --keywords 3
+```
+
+The report is followed by:
+
+```text
+Keywords:
+   9.67  quick brown fox (1x)
+   4.00  smith studied (1x)
+   4.00  unbelievable relationship (1x)
+```
+
 ## analyze()
 
 `analyze(text)` returns a frozen `Report` dataclass with counts, readability
@@ -218,7 +262,7 @@ Output:
 `wordtally FILE|-` reads a UTF-8 file (or standard input with `-`). Options:
 `--format text|json|markdown|csv`, `--output FILE`, `--stopwords`,
 `--stopwords-file FILE`, `--top N`, `--min-n`, `--max-n`, `--min-count`,
-`--sentence-stats`, `--long-sentence N`, `--diversity`.
+`--sentence-stats`, `--long-sentence N`, `--diversity`, `--keywords N`.
 
 ## CSV output and --output
 

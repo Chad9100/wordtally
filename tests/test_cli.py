@@ -22,6 +22,26 @@ def textfile(tmp_path):
     return str(p)
 
 
+def test_keywords_all_formats(textfile, capsysbinary):
+    assert main([textfile, "--keywords", "2"]) == 0
+    out = capsysbinary.readouterr().out.decode()
+    assert "Keywords:" in out and "dogs bark loudly" in out
+    assert main([textfile, "-f", "json", "--keywords", "2"]) == 0
+    data = json.loads(capsysbinary.readouterr().out)
+    assert data["keywords"][0] == {"keyword": "dogs bark loudly", "score": 9.0, "count": 1}
+    assert len(data["keywords"]) == 2
+    assert main([textfile, "-f", "csv", "--keywords", "1"]) == 0
+    assert "keyword,dogs bark loudly,9.0" in capsysbinary.readouterr().out.decode()
+    assert main([textfile, "-f", "markdown", "--keywords", "1"]) == 0
+    assert "| dogs bark loudly | 9.0 | 1 |" in capsysbinary.readouterr().out.decode()
+
+
+def test_keywords_off_by_default_and_negative(textfile, capsysbinary):
+    assert main([textfile]) == 0
+    assert "Keywords" not in capsysbinary.readouterr().out.decode()
+    assert main([textfile, "--keywords", "-1"]) == 2
+
+
 def test_text_output(textfile, capsysbinary):
     assert main([textfile]) == 0
     out = capsysbinary.readouterr().out.decode("utf-8")

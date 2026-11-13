@@ -1,6 +1,7 @@
 """wordtally: text analysis library with a small CLI."""
 
 from .diversity import hapax_legomena, mtld, type_token_ratio
+from .keywords import Keyword, extract_keywords
 from .ngrams import Phrase, repeated_ngrams
 from .readability import (
     automated_readability_index,
@@ -20,6 +21,7 @@ __version__ = "0.1.0"
 
 __all__ = [
     "ENGLISH_STOPWORDS",
+    "Keyword",
     "Phrase",
     "Report",
     "SentenceStats",
@@ -27,6 +29,7 @@ __all__ = [
     "automated_readability_index",
     "coleman_liau_index",
     "count_syllables",
+    "extract_keywords",
     "flesch_kincaid_grade",
     "flesch_reading_ease",
     "gunning_fog",

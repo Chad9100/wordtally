@@ -9,6 +9,7 @@ from collections.abc import Sequence
 
 from . import __version__
 from .diversity import hapax_legomena, mtld, type_token_ratio
+from .keywords import extract_keywords
 from .report import analyze
 from .sentences import sentence_stats
 from .tokenize import ENGLISH_STOPWORDS, parse_stopwords, tokenize
@@ -50,6 +51,10 @@ def _build_parser() -> argparse.ArgumentParser:
         "--diversity", action="store_true",
         help="add lexical diversity: type-token ratio, MTLD and hapax legomena",
     )
+    p.add_argument(
+        "--keywords", type=int, default=0, metavar="N",
+        help="add the N best RAKE keyword phrases (default: 0, off)",
+    )
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return p
 
@@ -84,6 +89,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     if args.min_n < 1 or args.max_n < args.min_n or args.min_count < 2:
         print("wordtally: need 1 <= min-n <= max-n and min-count >= 2", file=sys.stderr)
+        return 2
+    if args.keywords < 0:
+        print("wordtally: --keywords must be >= 0", file=sys.stderr)
         return 2
     if args.long_sentence < 1:
         print("wordtally: --long-sentence must be >= 1", file=sys.stderr)
@@ -121,8 +129,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     stats = sentence_stats(text, long_threshold=args.long_sentence) if args.sentence_stats else None
     div = diversity_summary(text) if args.diversity else None
+    kws = extract_keywords(text, top=args.keywords) if args.keywords else []
     if args.format == "json":
         data = report.to_dict()
+        if args.keywords:
+            data["keywords"] = [
+                {"keyword": k.text, "score": k.score, "count": k.count} for k in kws
+            ]
         if div:
             data["diversity"] = div
         if args.sentence_stats:
@@ -130,6 +143,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         out = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
     elif args.format == "csv":
         extra: list[tuple[str, str, str | int | float]] = []
+        extra += [("keyword", k.text, k.score) for k in kws]
         if div:
             extra += [("diversity", k, v) for k, v in div.items()]
         if stats:
@@ -144,6 +158,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         out = report.to_csv(extra)
     elif args.format == "markdown":
         out = report.to_markdown()
+        if kws:
+            out += (
+                "\n## Keywords\n\n| Keyword | Score | Count |\n| --- | ---: | ---: |\n"
+                + "".join(f"| {k.text} | {k.score} | {k.count} |\n" for k in kws)
+            )
         if div:
             out += (
                 "\n## Lexical diversity\n\n| Metric | Value |\n| --- | ---: |\n"
@@ -153,6 +172,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             out += "\n## Sentence statistics\n\n```text\n" + stats.to_text() + "```\n"
     else:
         out = report.to_text()
+        if kws:
+            out += "\nKeywords:\n" + "".join(
+                f"{k.score:7.2f}  {k.text} ({k.count}x)\n" for k in kws
+            )
         if div:
             out += (
                 "\nLexical diversity:\n"
